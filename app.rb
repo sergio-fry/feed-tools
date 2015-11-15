@@ -63,7 +63,7 @@ class FeedTools < Sinatra::Base
 
       content = cleanup_html(entry.content || entry.summary || "", rules)
 
-      params[:processors].each do |name|
+      (params[:processors] || []).each do |name|
         content = send("processor_#{name}", content)
       end
 
