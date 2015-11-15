@@ -2,6 +2,7 @@ require 'sinatra/base'
 require 'nokogiri'
 require 'ostruct'
 require 'feedjira'
+require 'digest'
 
 class FeedTools < Sinatra::Base
   get "/" do
@@ -56,17 +57,25 @@ class FeedTools < Sinatra::Base
 
     builder = Nokogiri::XML::Builder.new("encoding" => "UTF-8") do |xml|
       xml.feed "xmlns" => "http://www.w3.org/2005/Atom", "xml:lang" => "en-US" do |xml|
-        xml.id "urn:citizen428:github:newrepos"
-        xml.updated Time.now.utc.iso8601(0)
-        xml.title "New GitHub Ruby Repos", :type => "text"
-        xml.link :rel => "self", :href => "/ruby_github.atom"
+        xml.id Digest::MD5.hexdigest(request.url)
+
+        if entries.size > 0
+          xml.updated entries[0].updated.utc.iso8601(0)
+        end
+
+        xml.title feed.title, :type => "text"
+        xml.link :rel => "self", :href => request.url
 
         entries.each do |entry|
           xml.entry do
             xml.title entry.title
-            xml.author do |xml|
-              xml.name entry.author
+
+            unless entry.author.nil?
+              xml.author do |xml|
+                xml.name entry.author
+              end
             end
+
             xml.link "href" => entry.url
             xml.id entry.url
             xml.published entry.published.utc.iso8601(0)
