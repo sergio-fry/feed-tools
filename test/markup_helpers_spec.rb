@@ -26,22 +26,22 @@ describe MarkupHelpers do
     end
   end
 
-  describe "#processor_marked" do
+  describe "#processor_markdown" do
     it "should eval markdown syntax" do
       html = "Hi *there*"
-      assert_equal to_html(processor_marked(html)).include?("<em>there</em>"), true
+      assert_equal to_html(processor_markdown(html)).include?("<em>there</em>"), true
     end
   end
 
-  describe "#fix_headers" do
+  describe "#processor_fix_headers" do
     it "should downgrade headers if h1 present" do
       html = "Text <h1>Header</h1> more text"
-      assert_equal to_html(fix_headers(html)).include?("<h2>Header</h2>"), true
+      assert_equal to_html(processor_fix_headers(html)).include?("<h2>Header</h2>"), true
     end
 
     it "should upgrade headers if no h2 present" do
       html = "Text <h3>Header</h3> more text"
-      assert_equal to_html(fix_headers(html)).include?("<h2>Header</h2>"), true
+      assert_equal to_html(processor_fix_headers(html)).include?("<h2>Header</h2>"), true
     end
   end
 

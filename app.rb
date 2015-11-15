@@ -15,6 +15,10 @@ class FeedTools < Sinatra::Base
     fix_headers: "Fix headers",
     responsive_images: "Responsive images (Bootstrap)",
     align_images_to_center: "Align images to center (Bootstrap)",
+    responsive_embded: "Responsive embded, video, iframes (Bootstrap)",
+    sanitize: "Sanitize",
+    fix_paragraphs: "Fix paragraphs",
+    remove_empty_paragraphs: "Remove empty paragraphs",
   }
 
   get "/" do

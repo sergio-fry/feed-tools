@@ -108,6 +108,67 @@ module MarkupHelpers
     doc
   end
 
+  def processor_responsive_embded(html_or_doc)
+    doc = to_doc html_or_doc
+
+    doc.css("embded,video,iframe,object").each do |el|
+      el["class"] = "embed-responsive-item"
+      el.replace "<div class=\"embed-responsive embed-responsive-16by9\">#{el.to_html}</div>"
+    end
+
+    doc
+  end
+
+  def processor_remove_empty_paragraphs(html_or_doc)
+    doc = to_doc html_or_doc
+
+    doc.css("p").each do |el|
+      if el.text.remove(/[[:space:]]+/m).blank?
+        if el.css("img,iframe,video").size == 0
+          el.remove 
+        end
+      end
+    end
+
+    doc
+  end
+
+  def processor_fix_paragraphs(html_or_doc)
+    doc = to_doc html_or_doc
+
+    doc.css("br").each do |br|
+      br.add_next_sibling("\n\n")
+    end
+
+    doc.css("p,div").each do |el|
+      el.replace "\n\n<br /><br />#{el.inner_html}<br /><br />\n\n"
+    end
+
+    html = to_html doc 
+
+    html.gsub(/\r\n?/, "\n").split(/\n\n+/).map! do |t|
+      t.gsub!(/([^\n]\n)(?=[^\n])/, '\1<br />') || t
+    end
+
+    html
+  end
+
+  def processor_sanitize(html_or_doc)
+    html = to_html html_or_doc
+
+    sanitize(simple_format(html, {}, sanitize: false), tags: %w(h2 h3 h4 h5 h6 p a strong i b blockquote stroke ul li ol em del img cut table tr td th video iframe embded object), attributes: %w(href src alt title name start))
+
+    Sanitize.fragment(html, {
+      :elements => %w(h2 h3 h4 h5 h6 p a strong i b blockquote stroke ul li ol em del img cut table tr td th video iframe embded object),
+      :add_attributes => {
+        'a' => {'rel' => 'nofollow'},
+      },
+      :attributes => {
+        :all => %w(href src alt title name start),
+      },
+    })
+  end
+
   # TODO: разбить на мелкие методы
   def format_content(html)
     ###########################################################################
@@ -154,7 +215,6 @@ module MarkupHelpers
     end
 
     html = doc.to_html
-
 
     raw html
   end
