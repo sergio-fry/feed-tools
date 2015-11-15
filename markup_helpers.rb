@@ -1,4 +1,5 @@
 require 'nokogiri'
+require 'redcarpet'
 
 module MarkupHelpers
   def cleanup_html(html, rules=nil)
@@ -53,13 +54,13 @@ module MarkupHelpers
     html
   end
 
+  def processor_marked(html, options={})
+    markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML, {autolink: true, tables: true}.merge(options))
+    html = markdown.render(html)
+  end
+
   # TODO: разбить на мелкие методы
   def format_content(html)
-    ###########################################################################
-    # Mardown
-    markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML, autolink: true, tables: true)
-    html = markdown.render(html)
-
     ###########################################################################
     # Nokogiri 1
 

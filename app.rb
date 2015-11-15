@@ -27,6 +27,12 @@ class FeedTools < Sinatra::Base
   </p>
 
   <p>
+    <strong>Markup options</strong>
+    <br />
+    <input type="checkbox" name="markdown" id="markdown" value="1" /> <label for="markdown">Markdown processor</label>
+  </p>
+
+  <p>
     <input type="submit" />
   </p>
 </form>
@@ -42,6 +48,8 @@ class FeedTools < Sinatra::Base
       rules += default_cleanup_rules(params[:url])
 
       content = cleanup_html(entry.content || entry.summary || "", rules)
+
+      content = processor_marked(content) if params[:markdown] == "1"
 
       url = url_after_redirects entry.url
 
