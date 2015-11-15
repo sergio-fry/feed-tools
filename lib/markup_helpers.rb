@@ -1,8 +1,10 @@
 require 'nokogiri'
 require 'redcarpet'
+require 'active_support'
+require 'active_support/core_ext/object/blank'
 
 module MarkupHelpers
-  def cleanup_html(html, rules=nil)
+  def cleanup_html(html_or_doc, rules=nil)
     rules.each_with_index do |line, index|
       match = line.match(/^([^\s]+)\s+([^\s]+)\s+(.*)/)
 
@@ -17,12 +19,10 @@ module MarkupHelpers
           when "regexp"
             regexp = eval(args[1])
 
-            html = html.gsub regexp, ""
+            html_or_doc = to_html(html_or_doc).gsub regexp, ""
           when "css"
-            doc = Nokogiri::HTML::DocumentFragment.parse(html)
-            doc.css(args[1]).each(&:remove)
-
-            html = doc.to_html
+            html_or_doc = to_doc(html_or_doc)
+            html_or_doc.css(args[1]).each(&:remove)
           else
             raise "unknown remove type '#{args[0]}': '#{line}'"
           end
@@ -30,12 +30,12 @@ module MarkupHelpers
         when "select"
           case args[0]
           when "css"
-            doc = Nokogiri::HTML::DocumentFragment.parse(html)
+            html_or_doc = to_doc(html_or_doc)
 
-            el = doc.css(args[1])[0]
+            el = html_or_doc.css(args[1])[0]
 
             if el.present?
-              html = doc.css(args[1])[0].to_html
+              html_or_doc = html_or_doc.css(args[1])[0]
             else
               raise "Can't find anything by css selector '#{args[1]}'"
             end
@@ -51,16 +51,16 @@ module MarkupHelpers
       end
     end
 
-    html
+    html_or_doc
   end
 
-  def processor_marked(html, options={})
+  def processor_markdown(html_or_doc, options={})
     markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML, {autolink: true, tables: true}.merge(options))
-    html = markdown.render(html)
+    markdown.render(to_html(html_or_doc))
   end
 
-  def fix_headers(doc_or_html)
-    doc = Nokogiri::HTML::DocumentFragment.parse(html)
+  def processor_fix_headers(html_or_doc)
+    doc = to_doc(html_or_doc)
 
     ###########################################################################
     # Headers levelize
@@ -68,7 +68,7 @@ module MarkupHelpers
 
     (1..6).each do |level|
       max_header_level = level if doc.css("h#{level}").size > 0
-      break if max_header_level.present?
+      break unless max_header_level.nil?
     end
 
 
@@ -83,8 +83,29 @@ module MarkupHelpers
       end
     end
 
+    doc
+  end
 
-    html = doc.to_html
+  def processor_align_images_to_center(html_or_doc)
+    doc = to_doc html_or_doc
+
+    doc.css("img").each do |img|
+      img["class"] ||= ""
+      img["class"] += " img-responsive"
+    end
+
+    doc
+  end
+
+  def processor_responsive_images(html_or_doc)
+    doc = to_doc html_or_doc
+
+    doc.css("img").each do |img|
+      img["class"] = ""
+      img["class"] += " center-block"
+    end
+
+    doc
   end
 
   # TODO: разбить на мелкие методы
@@ -103,30 +124,6 @@ module MarkupHelpers
     end
 
     ###########################################################################
-    # Headers levelize
-    max_header_level = nil
-
-    (1..6).each do |level|
-      max_header_level = level if doc.css("h#{level}").size > 0
-      break if max_header_level.present?
-    end
-
-
-    if max_header_level.present?
-      range = max_header_level < 2 ? (6).downto(max_header_level) : max_header_level.upto(6)
-
-      range.each do |level|
-        doc.css("h#{level}").each do |el|
-          new_level = level - (max_header_level - 2)
-          el.replace "<h#{new_level}>#{el.inner_html}</h#{new_level}>"
-        end
-      end
-    end
-
-
-    html = doc.to_html
-
-    ###########################################################################
     # Sanitize
 
     html = sanitize(simple_format(html, {}, sanitize: false), tags: %w(h2 h3 h4 h5 h6 p a strong i b blockquote stroke ul li ol em del img cut table tr td th video iframe embded object), attributes: %w(href src alt title name start))
@@ -138,13 +135,6 @@ module MarkupHelpers
     # поэтому добавляем их после
     doc = Nokogiri::HTML::DocumentFragment.parse(html)
 
-    doc.css("img").each do |img|
-      img["class"] = "img-responsive center-block"
-    end
-
-    doc.css("a").each do |img|
-      img["target"] = "_blank"
-    end
 
     doc.css("embded,video,iframe,object").each do |el|
       el["class"] = "embed-responsive-item"
@@ -167,5 +157,21 @@ module MarkupHelpers
 
 
     raw html
+  end
+
+  def to_doc(html_or_doc)
+    if html_or_doc.respond_to?(:to_html)
+      html_or_doc
+    else
+      Nokogiri::HTML::DocumentFragment.parse(html_or_doc)
+    end
+  end
+
+  def to_html(html_or_doc)
+    if html_or_doc.respond_to?(:to_html)
+      html_or_doc.to_html
+    else
+      html_or_doc
+    end
   end
 end

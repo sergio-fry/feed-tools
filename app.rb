@@ -9,7 +9,17 @@ require './lib/markup_helpers'
 class FeedTools < Sinatra::Base
   include MarkupHelpers
 
+
+  PROCESSORS = {
+    markdown: "Markdown",
+    fix_headers: "Fix headers",
+    responsive_images: "Responsive images (Bootstrap)",
+    align_images_to_center: "Align images to center (Bootstrap)",
+  }
+
   get "/" do
+    processors = params[:processors] || []
+
     <<-HTML
 <h1>Feedler Builder</h1>
 
@@ -28,8 +38,8 @@ class FeedTools < Sinatra::Base
 
   <p>
     <strong>Markup options</strong>
-    <br />
-    <input type="checkbox" name="markdown" id="markdown" value="1" /> <label for="markdown">Markdown processor</label>
+
+    #{PROCESSORS.map { |key, title| processor_checkbox(key, title) }.join("\n")}
   </p>
 
   <p>
@@ -49,7 +59,9 @@ class FeedTools < Sinatra::Base
 
       content = cleanup_html(entry.content || entry.summary || "", rules)
 
-      content = processor_marked(content) if params[:markdown] == "1"
+      params[:processors].each do |name|
+        content = send("processor_#{name}", content)
+      end
 
       url = url_after_redirects entry.url
 
@@ -60,7 +72,7 @@ class FeedTools < Sinatra::Base
         author: entry.author,
         published: entry.published || Time.at(0),
         updated: entry.updated || entry.published,
-        content: content,
+        content: to_html(content),
       })
     end
 
@@ -133,6 +145,15 @@ class FeedTools < Sinatra::Base
     end
 
     rules
+  end
+
+  def processor_checkbox(key, title)
+    processors = params[:processors] || []
+
+    <<-HTML
+    <br />
+    <input type="checkbox" name="processors[]" id="" value="#{key}" #{processors.include?(key) ? "checked" : "" }/> <label for="#{key}">#{title}</label>
+    HTML
   end
 end
 
