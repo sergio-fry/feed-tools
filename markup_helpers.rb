@@ -1,13 +1,7 @@
 require 'nokogiri'
 
 module MarkupHelpers
-
   def cleanup_html(html, rules=nil)
-    # удаляем комментарии
-    doc = Nokogiri::HTML::DocumentFragment.parse(html)
-    doc.xpath('//comment()').remove
-    html = doc.to_html
-
     rules.each_with_index do |line, index|
       match = line.match(/^([^\s]+)\s+([^\s]+)\s+(.*)/)
 
