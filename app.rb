@@ -41,7 +41,7 @@ class FeedTools < Sinatra::Base
 
 
     builder = Nokogiri::XML::Builder.new do |xml|
-      xml.root "xmlns" => "http://www.w3.org/2005/Atom" do |xml|
+      xml.feed "xmlns" => "http://www.w3.org/2005/Atom", "encoding" => "UTF-8" do |xml|
         xml.id "urn:citizen428:github:newrepos"
         xml.updated Time.now.utc.iso8601(0)
         xml.title "New GitHub Ruby Repos", :type => "text"
@@ -61,6 +61,7 @@ class FeedTools < Sinatra::Base
       end
     end
 
+    headers "Content-Type" => "application/rss+xml"
     builder.to_xml
   end
 end
