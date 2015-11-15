@@ -59,6 +59,34 @@ module MarkupHelpers
     html = markdown.render(html)
   end
 
+  def fix_headers(doc_or_html)
+    doc = Nokogiri::HTML::DocumentFragment.parse(html)
+
+    ###########################################################################
+    # Headers levelize
+    max_header_level = nil
+
+    (1..6).each do |level|
+      max_header_level = level if doc.css("h#{level}").size > 0
+      break if max_header_level.present?
+    end
+
+
+    if max_header_level.present?
+      range = max_header_level < 2 ? (6).downto(max_header_level) : max_header_level.upto(6)
+
+      range.each do |level|
+        doc.css("h#{level}").each do |el|
+          new_level = level - (max_header_level - 2)
+          el.replace "<h#{new_level}>#{el.inner_html}</h#{new_level}>"
+        end
+      end
+    end
+
+
+    html = doc.to_html
+  end
+
   # TODO: разбить на мелкие методы
   def format_content(html)
     ###########################################################################

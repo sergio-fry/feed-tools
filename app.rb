@@ -4,7 +4,7 @@ require 'ostruct'
 require 'feedjira'
 require 'digest'
 
-require './markup_helpers'
+require './lib/markup_helpers'
 
 class FeedTools < Sinatra::Base
   include MarkupHelpers
