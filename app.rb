@@ -1,6 +1,7 @@
 require 'sinatra/base'
 require 'nokogiri'
 require 'ostruct'
+require 'feedjira'
 
 class FeedTools < Sinatra::Base
   get "/" do
@@ -34,14 +35,27 @@ class FeedTools < Sinatra::Base
 
 
   get "/feed" do
+    feed = Feedjira::Feed.fetch_and_parse(params[:url])
 
-    entries = [
-      OpenStruct.new(title: "Title", author: "Author", url: "http://example.com/page", id: "123", published: Time.now, updated: Time.now, content: "Content!"),
-    ]
+    entries = feed.entries.map do |entry|
+      content = entry.content || entry.summary || ""
+
+      url = url_after_redirects entry.url
+
+      OpenStruct.new({
+        id: url,
+        url: url,
+        title: entry.title,
+        author: entry.author,
+        published: entry.published || Time.at(0),
+        updated: entry.updated || entry.published,
+        content: content,
+      })
+    end
 
 
-    builder = Nokogiri::XML::Builder.new do |xml|
-      xml.feed "xmlns" => "http://www.w3.org/2005/Atom", "encoding" => "UTF-8" do |xml|
+    builder = Nokogiri::XML::Builder.new("encoding" => "UTF-8") do |xml|
+      xml.feed "xmlns" => "http://www.w3.org/2005/Atom", "xml:lang" => "en-US" do |xml|
         xml.id "urn:citizen428:github:newrepos"
         xml.updated Time.now.utc.iso8601(0)
         xml.title "New GitHub Ruby Repos", :type => "text"
@@ -50,7 +64,9 @@ class FeedTools < Sinatra::Base
         entries.each do |entry|
           xml.entry do
             xml.title entry.title
-            xml.author entry.author
+            xml.author do |xml|
+              xml.name entry.author
+            end
             xml.link "href" => entry.url
             xml.id entry.url
             xml.published entry.published.utc.iso8601(0)
@@ -63,6 +79,27 @@ class FeedTools < Sinatra::Base
 
     headers "Content-Type" => "application/rss+xml"
     builder.to_xml
+  end
+
+  private
+
+  # получаем полный url - после редиректов
+  def url_after_redirects(source_url)
+    follow_url = lambda { |url| HTTPClient.new.head(url).header['Location'][0] }
+
+    target_url = source_url
+
+    loop do
+      next_url = follow_url.call(target_url)
+
+      break if next_url.blank?
+
+      target_url = next_url
+    end
+
+    target_url
+  rescue
+    source_url
   end
 end
 
