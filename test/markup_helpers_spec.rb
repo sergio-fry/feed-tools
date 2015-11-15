@@ -45,4 +45,30 @@ describe MarkupHelpers do
     end
   end
 
+
+  describe "#processor_sanitize" do
+    it "should remove js" do
+      html = "Text <script>alert()</script>"
+      assert_equal to_html(processor_sanitize(html)).include?("script"), false
+    end
+  end
+
+  describe "#processor_fix_paragraphs" do
+    it "should replace brs to p" do
+      html = "Hi <br><br> there"
+      assert_equal to_html(processor_fix_paragraphs(html)).include?("<p>"), true
+    end
+  end
+
+  describe "#processor_remove_empty_paragraphs" do
+    it "should remove empty paragraphs" do
+      html = "<p></p>Text"
+      assert_equal to_html(processor_remove_empty_paragraphs(html)).include?("<p>"), false
+    end
+
+    it "should not remove nonempty paragraphs" do
+      html = "<p>Text</p>"
+      assert_equal to_html(processor_remove_empty_paragraphs(html)).include?("<p>"), true
+    end
+  end
 end

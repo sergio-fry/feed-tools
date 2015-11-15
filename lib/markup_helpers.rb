@@ -2,6 +2,7 @@ require 'nokogiri'
 require 'redcarpet'
 require 'active_support'
 require 'active_support/core_ext/object/blank'
+require 'sanitize'
 
 module MarkupHelpers
   def cleanup_html(html_or_doc, rules=nil)
@@ -122,8 +123,8 @@ module MarkupHelpers
   def processor_remove_empty_paragraphs(html_or_doc)
     doc = to_doc html_or_doc
 
-    doc.css("p").each do |el|
-      if el.text.remove(/[[:space:]]+/m).blank?
+    doc.css("p,div").each do |el|
+      if el.text.gsub(/[[:space:]]+/, "").blank?
         if el.css("img,iframe,video").size == 0
           el.remove 
         end
@@ -138,25 +139,26 @@ module MarkupHelpers
 
     doc.css("br").each do |br|
       br.add_next_sibling("\n\n")
+      br.remove
     end
 
     doc.css("p,div").each do |el|
-      el.replace "\n\n<br /><br />#{el.inner_html}<br /><br />\n\n"
+      el.replace "\n\n#{el.inner_html}\n\n"
     end
 
-    html = to_html doc 
-
-    html.gsub(/\r\n?/, "\n").split(/\n\n+/).map! do |t|
-      t.gsub!(/([^\n]\n)(?=[^\n])/, '\1<br />') || t
+    paragraphs = to_html(doc).gsub(/\r\n?/, "\n").split(/\n\n+/).map! do |t|
+      t.gsub!(/([^\n]\n)(?=[^\n])/, '\1') || t
     end
 
-    html
+    html = paragraphs.map! do |html|
+      "\n<p>#{html}</p>\n"
+    end.join
+
+    processor_remove_empty_paragraphs(html)
   end
 
   def processor_sanitize(html_or_doc)
     html = to_html html_or_doc
-
-    sanitize(simple_format(html, {}, sanitize: false), tags: %w(h2 h3 h4 h5 h6 p a strong i b blockquote stroke ul li ol em del img cut table tr td th video iframe embded object), attributes: %w(href src alt title name start))
 
     Sanitize.fragment(html, {
       :elements => %w(h2 h3 h4 h5 h6 p a strong i b blockquote stroke ul li ol em del img cut table tr td th video iframe embded object),

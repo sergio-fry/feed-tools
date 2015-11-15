@@ -69,15 +69,18 @@ class FeedTools < Sinatra::Base
 
       url = url_after_redirects entry.url
 
-      OpenStruct.new({
+      struct = OpenStruct.new({
         id: url,
         url: url,
         title: entry.title,
         author: entry.author,
         published: entry.published || Time.at(0),
-        updated: entry.updated || entry.published,
         content: to_html(content),
       })
+
+      struct.updated = entry.updated || struct.published
+
+      struct
     end
 
 
