@@ -4,17 +4,16 @@ require 'ostruct'
 require 'feedjira'
 require 'digest'
 
+require './markup_helpers'
+
 class FeedTools < Sinatra::Base
+  include MarkupHelpers
+
   get "/" do
     <<-HTML
 <h1>Feedler Builder</h1>
 
 <form action="/feed">
-  <p>
-    <label for="title">Title</label>
-    <br />
-    <input type="text" id="title" name="title" value="#{params[:title]}" />
-  </p>
   <p>
     <label for="url">URL</label>
     <br />
@@ -22,9 +21,9 @@ class FeedTools < Sinatra::Base
   </p>
 
   <p>
-    <label for="regexp">Replace Regexp</label>
+    <label for="rules">Cleanup Rules</label>
     <br />
-    <textarea id="regexp" name="regexp" cols=80 rows=20>#{params[:regexp]}</textarea>
+    <textarea id="rules" name="rules" cols=80 rows=20>#{params[:rules]}</textarea>
   </p>
 
   <p>
@@ -39,7 +38,10 @@ class FeedTools < Sinatra::Base
     feed = Feedjira::Feed.fetch_and_parse(params[:url])
 
     entries = feed.entries.map do |entry|
-      content = entry.content || entry.summary || ""
+      rules = (params[:rules] || "").to_s.split("\n").map(&:strip).compact
+      rules += default_cleanup_rules(params[:url])
+
+      content = cleanup_html(entry.content || entry.summary || "", rules)
 
       url = url_after_redirects entry.url
 
@@ -109,6 +111,20 @@ class FeedTools < Sinatra::Base
     target_url
   rescue
     source_url
+  end
+
+  def default_cleanup_rules(feed_url)
+    rules = []
+
+    if feed_url.match /ftr.fivefilters.org/
+      rules << "remove regexp /This entry passed through the Full-Text RSS service.+/im"
+    end
+
+    if feed_url.match /feeds.feedburner.com/
+      rules << "remove css .feedflare"
+    end
+
+    rules
   end
 end
 
