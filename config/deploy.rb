@@ -12,7 +12,7 @@ require 'mina/git'
 
 set :domain, 'hosting2.charybd.com'
 set :deploy_to, '/home/railsapp/apps/feed-tools'
-set :repository, 'git@github.com:sergio-fry/feed-tools.git'
+set :repository, 'https://github.com/sergio-fry/feed-tools.git'
 set :branch, 'master'
 
 # For system-wide RVM install.
@@ -23,7 +23,7 @@ set :branch, 'master'
 set :shared_paths, ['config/database.yml', 'config/secrets.yml', 'log']
 
 # Optional settings:
-#   set :user, 'foobar'    # Username in the server to SSH to.
+set :user, 'railsapp'    # Username in the server to SSH to.
 #   set :port, '30000'     # SSH port number.
 #   set :forward_agent, true     # SSH forward_agent.
 
@@ -71,8 +71,8 @@ task :deploy => :environment do
     invoke :'git:clone'
     invoke :'deploy:link_shared_paths'
     invoke :'bundle:install'
-    invoke :'rails:db_migrate'
-    invoke :'rails:assets_precompile'
+    #invoke :'rails:db_migrate'
+    #invoke :'rails:assets_precompile'
     invoke :'deploy:cleanup'
 
     to :launch do
