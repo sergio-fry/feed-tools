@@ -115,7 +115,7 @@ class FeedTools < Sinatra::Base
       end
     end
 
-    headers "Content-Type" => "application/rss+xml"
+    headers "Content-Type" => "text/xml; charset=UTF-8"
     builder.to_xml
   end
 
